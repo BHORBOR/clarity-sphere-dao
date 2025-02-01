@@ -43,7 +43,7 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: "Test proposal creation and voting",
+  name: "Test proposal creation with milestones",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const wallet1 = accounts.get('wallet_1')!;
@@ -60,22 +60,56 @@ Clarinet.test({
       ], deployer.address)
     ]);
     
-    // Create proposal
+    const milestones = [
+      {
+        title: "Milestone 1",
+        description: "First milestone",
+        deadline: 100,
+        funds: 500,
+        status: "pending"
+      },
+      {
+        title: "Milestone 2", 
+        description: "Second milestone",
+        deadline: 200,
+        funds: 500,
+        status: "pending"
+      }
+    ];
+    
+    // Create proposal with milestones
     block = chain.mineBlock([
       Tx.contractCall('sphere_dao', 'create-proposal', [
         types.ascii("Test Proposal"),
         types.ascii("Description"),
         types.uint(100),
-        types.uint(1000)
+        types.uint(1000),
+        types.list(milestones.map(m => ({
+          title: types.ascii(m.title),
+          description: types.ascii(m.description),
+          deadline: types.uint(m.deadline),
+          funds: types.uint(m.funds),
+          status: types.ascii(m.status)
+        })))
       ], wallet1.address)
     ]);
     block.receipts[0].result.expectOk();
     
-    // Vote on proposal
+    // Vote on milestone
     block = chain.mineBlock([
-      Tx.contractCall('sphere_dao', 'vote-on-proposal', [
+      Tx.contractCall('sphere_dao', 'vote-on-milestone', [
         types.uint(1),
+        types.uint(0),
         types.bool(true)
+      ], deployer.address)
+    ]);
+    block.receipts[0].result.expectOk();
+    
+    // Complete milestone
+    block = chain.mineBlock([
+      Tx.contractCall('sphere_dao', 'complete-milestone', [
+        types.uint(1),
+        types.uint(0)
       ], deployer.address)
     ]);
     block.receipts[0].result.expectOk();
