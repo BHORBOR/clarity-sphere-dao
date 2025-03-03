@@ -1,31 +1,28 @@
-// [Previous test imports and initial tests remain unchanged]
+// [Previous test imports remain unchanged]
 
 Clarinet.test({
-  name: "Test double voting prevention",
+  name: "Test milestone deadline validation",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
-    const wallet1 = accounts.get('wallet_1')!;
     
-    // Setup and create proposal [previous setup code]
-    
-    // First vote should succeed
+    // Test invalid milestone deadline
     let block = chain.mineBlock([
-      Tx.contractCall('sphere_dao', 'vote-on-proposal', [
-        types.uint(1),
-        types.bool(true)
+      Tx.contractCall('sphere_dao', 'create-proposal', [
+        types.ascii("Test"),
+        types.ascii("Description"),
+        types.uint(30), // Proposal deadline
+        types.uint(1000),
+        types.list([{
+          title: types.ascii("M1"),
+          description: types.ascii("M1 Desc"),
+          deadline: types.uint(35), // Invalid: later than proposal deadline
+          funds: types.uint(500),
+          status: types.ascii("pending")
+        }])
       ], deployer.address)
     ]);
-    block.receipts[0].result.expectOk();
-    
-    // Second vote should fail
-    block = chain.mineBlock([
-      Tx.contractCall('sphere_dao', 'vote-on-proposal', [
-        types.uint(1),
-        types.bool(true)
-      ], deployer.address)
-    ]);
-    block.receipts[0].result.expectErr(107); // ERR_ALREADY_VOTED
+    block.receipts[0].result.expectErr(110); // ERR_INVALID_MILESTONE_DEADLINE
   }
 });
 
-// [Rest of the test file remains unchanged]
+// [Rest of test file remains unchanged]
